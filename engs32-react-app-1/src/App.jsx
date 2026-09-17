@@ -788,7 +788,7 @@ export default function CircuitBreaker() {
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontSize: 30, fontWeight: 700, margin: 0, letterSpacing: "-0.01em" }}>Circuit Breaker</h1>
+            <h1 style={{ fontSize: 30, fontWeight: 700, margin: 0, letterSpacing: "-0.01em", color: COLORS.cream }}>Circuit Breaker</h1>
             <p style={{ margin: "6px 0 0", color: COLORS.muted, fontSize: 15 }}>Drag resistors onto the board, wire them up, and watch the circuit solve itself.</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
