@@ -183,6 +183,43 @@ function makeMixed3RLevel(range, title, hint) {
   return { title, graph: GRAPH_3R, tray: [6, 6, 3, 10], goal: { type: "req", target: 6 }, hint, _p: 6, _c: 3, _decoy: 10 };
 }
 
+// Harder variant of the basic series/parallel puzzle: 4 resistors in the tray
+// instead of 3, with only 2 sockets, so there are two distractors to rule out
+// instead of one.
+function makeTwoDecoyLevel() {
+  for (let t = 0; t < 400; t++) {
+    const mode = Math.random() < 0.5 ? "series" : "parallel";
+    let a, b, target;
+    if (mode === "series") {
+      a = randInt(2, 15);
+      b = randInt(2, 15);
+      if (a === b) continue;
+      target = a + b;
+    } else {
+      a = randEven(4, 20);
+      b = a;
+      target = a / 2;
+    }
+    const decoy1 = randInt(2, 20);
+    const decoy2 = randInt(2, 20);
+    if (decoy1 === a || decoy1 === b || decoy2 === a || decoy2 === b || decoy1 === decoy2) continue;
+    const vals = [a, b, decoy1, decoy2];
+    if (uniqueMatch2R(vals, target)) {
+      return {
+        title: "Two decoys",
+        graph: GRAPH_2R,
+        tray: shuffle(vals),
+        goal: { type: "req", target },
+        hint:
+          mode === "series"
+            ? "Two of these four resistors combine in series to hit the target. Figure out which two, then wire them that way."
+            : "Two of these four resistors combine in parallel to hit the target. Figure out which two, then wire them that way.",
+      };
+    }
+  }
+  return { title: "Two decoys", graph: GRAPH_2R, tray: [4, 8, 7, 11], goal: { type: "req", target: 12 }, hint: "Two of these four combine in series to hit the target." };
+}
+
 function makeOhmTotalCurrentLevel() {
   for (let t = 0; t < 300; t++) {
     const a = randInt(2, 12);
@@ -294,6 +331,7 @@ function generateLevels() {
     makeSeriesLevel(),
     makeParallelLevel(),
     makeMixed3RLevel([2, 10], "Series + parallel", "Put two matching resistors in parallel first, then let the result feed into the third resistor in series."),
+    makeTwoDecoyLevel(),
     makeOhmTotalCurrentLevel(),
     makeKCLLevel(),
     makeKVLLevel(),
@@ -471,7 +509,7 @@ function TrayChip({ value, onPointerDownStart, dragging }) {
 }
 
 function scoreForLevel(moves, seconds) {
-  return Math.max(50, Math.round(1000 - moves * 15 - seconds * 3));
+  return Math.max(5, Math.round(100 - moves * 1.5 - seconds * 0.3));
 }
 
 // ---------------- Main component ----------------
@@ -485,6 +523,7 @@ export default function CircuitBreaker() {
   const [levelScores, setLevelScores] = useState({});
   const [moves, setMoves] = useState(0);
   const [showHint, setShowHint] = useState(false);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const [hoverSlot, setHoverSlot] = useState(null);
   const [drag, setDrag] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -634,6 +673,7 @@ export default function CircuitBreaker() {
     setLevelScores({});
     setSubmitted(false);
     setIsNewBest(false);
+    setConfirmRestart(false);
     setLevelIndex(0);
   }
 
@@ -752,7 +792,7 @@ export default function CircuitBreaker() {
             <p style={{ margin: "6px 0 0", color: COLORS.muted, fontSize: 15 }}>Drag resistors onto the board, wire them up, and watch the circuit solve itself.</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, color: COLORS.amber }}>{totalScore} pts</div>
+            <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 14, color: COLORS.amber }}>{totalScore} / {levels.length * 100} pts</div>
             <button className="cb-btn-ghost" onClick={openHistory}>My progress</button>
             {storageOk === false && <span style={{ fontSize: 11, color: COLORS.muted }}>(this session only)</span>}
           </div>
@@ -804,14 +844,14 @@ export default function CircuitBreaker() {
               <p style={{ color: COLORS.muted, maxWidth: 460, margin: "0 auto" }}>
                 Series, parallel, mixed networks, Ohm's law, and Kirchhoff's current and voltage laws — all wired by hand.
               </p>
-              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 32, color: COLORS.amber, margin: "16px 0" }}>{totalScore} pts</div>
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 32, color: COLORS.amber, margin: "16px 0" }}>{totalScore} / {levels.length * 100} pts</div>
               {isNewBest && <div style={{ color: COLORS.teal, fontSize: 14, fontWeight: 600 }}>New personal best</div>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, marginBottom: 24 }}>
               {levels.map((lv, i) => (
                 <div key={i} style={{ background: COLORS.panelAlt, border: `1px solid ${COLORS.line}`, borderRadius: 8, padding: "10px 12px" }}>
                   <div style={{ fontSize: 11, color: COLORS.muted }}>{lv.title}</div>
-                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", color: COLORS.teal, fontSize: 15 }}>{levelScores[i] ?? 0} pts</div>
+                  <div style={{ fontFamily: "'IBM Plex Mono', monospace", color: COLORS.teal, fontSize: 15 }}>{levelScores[i] ?? 0} / 100 pts</div>
                 </div>
               ))}
             </div>
@@ -851,10 +891,24 @@ export default function CircuitBreaker() {
 
               <button className="cb-btn-ghost" style={{ width: "100%", marginTop: 10 }} onClick={resetLevel}>Reset level</button>
 
+              {!confirmRestart ? (
+                <button className="cb-btn-ghost" style={{ width: "100%", marginTop: 10, borderColor: COLORS.alert, color: COLORS.alert }} onClick={() => setConfirmRestart(true)}>
+                  Start over
+                </button>
+              ) : (
+                <div style={{ marginTop: 10, padding: 12, background: COLORS.panelAlt, border: `1px solid ${COLORS.alert}`, borderRadius: 10 }}>
+                  <div style={{ fontSize: 13, color: COLORS.cream, marginBottom: 10 }}>Restart from Level 1? This clears your current run's score.</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="cb-btn" style={{ flex: 1, background: COLORS.alert }} onClick={playAgain}>Yes, start over</button>
+                    <button className="cb-btn-ghost" style={{ flex: 1 }} onClick={() => setConfirmRestart(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
               {won && (
                 <div style={{ marginTop: 16, padding: 14, background: "rgba(232,179,77,0.12)", border: `1px solid ${COLORS.amber}`, borderRadius: 10 }}>
                   <div style={{ color: COLORS.amber, fontWeight: 600, marginBottom: 4 }}>Target reached</div>
-                  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 10 }}>+{levelScores[levelIndex]} pts</div>
+                  <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 10 }}>+{levelScores[levelIndex]} / 100 pts</div>
                   <button className="cb-btn" style={{ width: "100%" }} onClick={goNext}>
                     {levelIndex < levels.length - 1 ? "Next level" : "Finish"}
                   </button>
