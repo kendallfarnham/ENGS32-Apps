@@ -864,7 +864,7 @@ export default function CircuitBreaker() {
           <div className="cb-grid" style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 20 }}>
             <div style={{ background: COLORS.panel, border: `1px solid ${COLORS.line}`, borderRadius: 14, padding: 20, alignSelf: "start" }}>
               <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 4 }}>Level {levelIndex + 1} of {levels.length}</div>
-              <h2 style={{ fontSize: 19, margin: "0 0 14px", lineHeight: 1.3 }}>{level.title}</h2>
+              <h2 style={{ fontSize: 19, margin: "0 0 14px", lineHeight: 1.3, color: COLORS.cream }}>{level.title}</h2>
               <p style={{ fontSize: 14, color: COLORS.cream, lineHeight: 1.5, margin: "0 0 14px" }}>{goalText(level)}</p>
 
               <div
