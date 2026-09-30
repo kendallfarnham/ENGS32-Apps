@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thévenin &amp; Norton Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+
+    --bg:#eee7d6;
+    --grid-line: rgba(30,58,90,0.10);
+    --ink:#20344a;
+    --ink-soft:#4a5f78;
+    --accent:#bc6a35;
+    --accent-strong:#a0552a;
+    --success:#3f7f63;
+    --error:#a8433a;
+    --panel-bg:#fbf7ec;
+    --panel-border:#d9cdae;
+    --panel-border-soft:#e6dcc2;
+    --text-primary:#22283a;
+    --text-muted:#6d6650;
+    --input-bg:#ffffff;
+    --font-display:'Archivo',sans-serif;
+    --font-mono:'Space Mono',monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#152436;
+      --grid-line: rgba(200,222,240,0.09);
+      --ink:#dfeaf5;
+      --ink-soft:#9db4cc;
+      --accent:#e0a15e;
+      --accent-strong:#eab26f;
+      --success:#6fc6ac;
+      --error:#e28178;
+      --panel-bg:#1b3049;
+      --panel-border:#33506f;
+      --panel-border-soft:#2a4460;
+      --text-primary:#eaf1f8;
+      --text-muted:#9db4cc;
+      --input-bg:#12233a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#152436;
+    --grid-line: rgba(200,222,240,0.09);
+    --ink:#dfeaf5;
+    --ink-soft:#9db4cc;
+    --accent:#e0a15e;
+    --accent-strong:#eab26f;
+    --success:#6fc6ac;
+    --error:#e28178;
+    --panel-bg:#1b3049;
+    --panel-border:#33506f;
+    --panel-border-soft:#2a4460;
+    --text-primary:#eaf1f8;
+    --text-muted:#9db4cc;
+    --input-bg:#12233a;
+  }
+  html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+    color:var(--text-primary);
+    font-family:var(--font-display);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent-strong);}
+
+  header{
+    position:sticky; top:0; z-index:20;
+    padding: calc(16px + env(safe-area-inset-top,0px)) 20px 14px;
+    background:linear-gradient(to bottom, var(--bg) 80%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom:1px solid var(--panel-border-soft);
+  }
+  .headrow{
+    max-width:1080px; margin:0 auto;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand h1{
+    margin:0; font-size:clamp(22px,4vw,30px); font-weight:800; letter-spacing:-0.01em;
+    color:var(--text-primary);
+  }
+  .brand h1 .swap{ color:var(--accent); }
+  .brand p{ margin:4px 0 0; color:var(--text-muted); font-size:14px; max-width:46ch;}
+  .stats{ font-family:var(--font-mono); font-size:13px; color:var(--ink-soft); text-align:right; white-space:nowrap;}
+  .stats b{ color:var(--accent-strong); }
+
+  main{ max-width:1080px; margin:0 auto; padding:22px 20px 60px; }
+
+  .controls{
+    display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:22px;
+  }
+  .control-group{ display:flex; align-items:center; gap:8px; }
+  .control-label{ font-size:12px; color:var(--text-muted); font-weight:600; }
+  .segmented{
+    display:inline-flex; background:var(--panel-bg); border:1px solid var(--panel-border);
+    border-radius:8px; padding:3px; gap:2px;
+  }
+  .segmented button{
+    border:none; background:transparent; color:var(--ink-soft);
+    font-family:var(--font-display); font-weight:600; font-size:13px;
+    padding:6px 12px; border-radius:6px; cursor:pointer;
+    transition: background .15s, color .15s;
+  }
+  .segmented button:hover{ color:var(--text-primary); }
+  .segmented button.active{ background:var(--accent); color:#fff; }
+  .segmented button:focus-visible, button:focus-visible, input:focus-visible{
+    outline:2px solid var(--accent); outline-offset:2px;
+  }
+  .newcircuit-btn{
+    margin-left:auto;
+    border:none; background:var(--accent); color:#fff; font-family:var(--font-display);
+    font-weight:700; font-size:14px; padding:10px 18px; border-radius:8px; cursor:pointer;
+    box-shadow:0 2px 0 var(--accent-strong);
+  }
+  .newcircuit-btn:hover{ filter:brightness(1.05); }
+  .newcircuit-btn:active{ transform: translateY(1px); box-shadow:none; }
+
+  .grid{ display:grid; grid-template-columns: 1.35fr 1fr; gap:20px; align-items:start; }
+  @media (max-width: 800px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{
+    background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:12px;
+    padding:18px 18px 14px;
+  }
+  .card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; flex-wrap:wrap;}
+  .card-head h2{ margin:0; font-size:16px; font-weight:700; }
+  .tag{
+    font-family:var(--font-mono); font-size:11px; padding:3px 8px; border-radius:999px;
+    border:1px solid var(--panel-border); color:var(--ink-soft);
+  }
+  .tag.easy{ color:var(--success); border-color:var(--success); }
+  .tag.medium{ color:var(--accent-strong); border-color:var(--accent-strong); }
+  .tag.hard{ color:var(--error); border-color:var(--error); }
+
+  .svgwrap{ width:100%; overflow-x:auto; }
+  svg.circuit{ width:100%; height:auto; display:block; min-width:420px; }
+  .wire-path{ stroke:var(--ink); stroke-width:2.5; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .src-circle{ fill:var(--panel-bg); stroke:var(--ink); stroke-width:2.5; }
+  .src-sign{ fill:var(--ink); font-family:var(--font-display); font-weight:700; font-size:16px; }
+  .src-arrow{ stroke:var(--ink); color:var(--ink); stroke-width:2.5; }
+  .comp-label{ fill:var(--accent-strong); font-family:var(--font-display); font-weight:700; font-size:14px; }
+  .comp-value{ fill:var(--ink); font-family:var(--font-mono); font-size:13px; }
+  .junction-dot{ fill:var(--ink); }
+  .terminal-dot{ fill:var(--accent); }
+  .terminal-label{ fill:var(--accent-strong); font-family:var(--font-mono); font-weight:700; font-size:19px; }
+  .open-dash{ stroke:var(--ink-soft); stroke-width:1.6; stroke-dasharray:5 5; fill:none; }
+  .open-badge-bg{ fill:var(--panel-bg); }
+  .open-badge{ fill:var(--ink-soft); font-family:var(--font-mono); font-size:11px; font-style:italic; }
+
+  .caption{ font-size:12px; color:var(--text-muted); margin-top:6px; }
+
+  .answer-panel .prompt{ font-size:14px; color:var(--text-muted); margin:0 0 14px; }
+  .fieldset{ margin-bottom:14px; }
+  .fieldset-title{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:none; letter-spacing:.02em; margin:0 0 8px; }
+  .field-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .field{ flex:1; min-width:120px; }
+  .field label{ display:block; font-size:13px; color:var(--text-muted); margin-bottom:4px; }
+  .field input{
+    width:100%; font-family:var(--font-mono); font-size:15px; padding:9px 10px;
+    border:1.5px solid var(--panel-border); border-radius:7px; background:var(--input-bg); color:var(--text-primary);
+  }
+  .field input.correct{ border-color:var(--success); box-shadow:0 0 0 1px var(--success) inset; }
+  .field input.incorrect{ border-color:var(--error); box-shadow:0 0 0 1px var(--error) inset; }
+  [data-mode="thevenin"] .fieldset.norton{ display:none; }
+  [data-mode="norton"] .fieldset.thevenin{ display:none; }
+
+  .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+  .btn{
+    font-family:var(--font-display); font-weight:700; font-size:13.5px; padding:9px 16px;
+    border-radius:8px; cursor:pointer; border:1.5px solid transparent;
+  }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-primary:hover{ filter:brightness(1.05); }
+  .btn-ghost{ background:transparent; color:var(--ink-soft); border-color:var(--panel-border); }
+  .btn-ghost:hover{ color:var(--text-primary); border-color:var(--ink-soft); }
+
+  .feedback{
+    margin-top:14px; padding:10px 12px; border-radius:8px; font-size:13.5px; display:none;
+  }
+  .feedback.show{ display:block; }
+  .feedback.correct{ background:rgba(63,127,99,0.14); color:var(--success); border:1px solid var(--success); }
+  .feedback.incorrect{ background:rgba(168,67,58,0.12); color:var(--error); border:1px solid var(--error); }
+  .feedback.hint{ background:transparent; color:var(--text-muted); border:1px dashed var(--panel-border); }
+
+  .solution{
+    margin-top:14px; padding-top:12px; border-top:1px dashed var(--panel-border); display:none;
+  }
+  .solution.show{ display:block; }
+  .solution ol{ margin:0; padding-left:20px; }
+  .solution li{ margin-bottom:8px; font-size:13.5px; line-height:1.5; color:var(--text-primary); }
+  .solution .nortonline{
+    margin-top:10px; font-family:var(--font-mono); font-size:13px; color:var(--ink-soft);
+    padding-top:8px; border-top:1px solid var(--panel-border-soft);
+  }
+
+  footer{ max-width:1080px; margin:0 auto; padding:0 20px 40px; color:var(--text-muted); font-size:12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="headrow">
+    <div class="brand">
+      <h1>Thévenin <span class="swap">⇄</span> Norton Practice</h1>
+      <p>Reduce each circuit to its equivalent seen from terminals A–B.</p>
+    </div>
+    <div class="stats" id="stats">Solved 0 · Streak 0</div>
+  </div>
+</header>
+
+<main>
+  <div class="controls">
+    <div class="control-group">
+      <span class="control-label">Difficulty</span>
+      <div class="segmented" id="diffSeg">
+        <button data-val="easy" class="active">Easy</button>
+        <button data-val="medium">Medium</button>
+        <button data-val="hard">Hard</button>
+        <button data-val="mixed">Mixed</button>
+      </div>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Find</span>
+      <div class="segmented" id="modeSeg">
+        <button data-val="thevenin" class="active">Thévenin</button>
+        <button data-val="norton">Norton</button>
+        <button data-val="both">Both</button>
+      </div>
+    </div>
+    <button class="newcircuit-btn" id="newCircuitBtn">New circuit</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-head">
+        <h2 id="templateName">—</h2>
+        <span class="tag" id="diffTag">easy</span>
+      </div>
+      <div class="svgwrap" id="svgHost"></div>
+      <p class="caption">Dashed line = open terminals — no load connected. That's the condition for finding the equivalent circuit.</p>
+    </div>
+
+    <div class="card answer-panel" id="answerPanel" data-mode="thevenin">
+      <div class="card-head"><h2>Your answer</h2></div>
+      <p class="prompt">Enter the equivalent circuit values, then check your work.</p>
+
+      <div class="fieldset thevenin">
+        <p class="fieldset-title">Thévenin equivalent</p>
+        <div class="field-row">
+          <div class="field">
+            <label for="in-vth">V<sub>TH</sub> (V)</label>
+            <input type="number" step="any" id="in-vth" data-field="vth" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="in-rth">R<sub>TH</sub> (Ω)</label>
+            <input type="number" step="any" id="in-rth" data-field="rth" placeholder="0.00">
+          </div>
+        </div>
+      </div>
+
+      <div class="fieldset norton">
+        <p class="fieldset-title">Norton equivalent</p>
+        <div class="field-row">
+          <div class="field">
+            <label for="in-in">I<sub>N</sub> (A)</label>
+            <input type="number" step="any" id="in-in" data-field="in" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="in-rn">R<sub>N</sub> (Ω)</label>
+            <input type="number" step="any" id="in-rn" data-field="rn" placeholder="0.00">
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="checkBtn">Check answer</button>
+        <button class="btn btn-ghost" id="solutionBtn">Show solution</button>
+        <button class="btn btn-ghost" id="nextBtn" style="display:none;">Next circuit →</button>
+      </div>
+
+      <div class="feedback" id="feedback"></div>
+
+      <div class="solution" id="solutionBox">
+        <ol id="solutionSteps"></ol>
+        <div class="nortonline" id="nortonLine"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Values regenerate with every new circuit — practice as many times as you want.</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- value pools ----------
+  const RPOOL = [4,5,6,8,10,12,15,16,18,20,24,25,30,33,40,47,50,56,68,75,82,100];
+  const VPOOL = [5,6,9,10,12,15,18,20,24];
+  const IPOOL = [1,1.5,2,2.5,3,4,5,6,8];
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+  // ---------- svg drawing helpers ----------
+  function zigzagPath(x1,y1,x2,y2){
+    const dx=x2-x1, dy=y2-y1;
+    const len=Math.hypot(dx,dy);
+    const ux=dx/len, uy=dy/len;
+    const px=-uy, py=ux;
+    const lead=16, amp=9;
+    const bx1=x1+ux*lead, by1=y1+uy*lead;
+    const bx2=x2-ux*lead, by2=y2-uy*lead;
+    const fracs=[0,1/6,2/6,3/6,4/6,5/6,1];
+    const amps=[0,-1,1,-1,1,-1,0];
+    const pts = fracs.map((f,i)=>{
+      const bx=bx1+(bx2-bx1)*f, by=by1+(by2-by1)*f;
+      return [bx+px*amp*amps[i], by+py*amp*amps[i]];
+    });
+    let d = `M ${x1} ${y1} L ${bx1.toFixed(1)} ${by1.toFixed(1)} `;
+    d += pts.map(p=>`L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+    d += ` L ${x2} ${y2}`;
+    return d;
+  }
+
+  function lineEl(x1,y1,x2,y2){
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="wire-path"/>`;
+  }
+  function dotEl(x,y){
+    return `<circle cx="${x}" cy="${y}" r="4" class="junction-dot"/>`;
+  }
+  function terminalEl(x,y,label,dx,dy){
+    return `<circle cx="${x}" cy="${y}" r="6" class="terminal-dot"/>
+      <text x="${x+dx}" y="${y+dy}" class="terminal-label" text-anchor="middle" dominant-baseline="central">${label}</text>`;
+  }
+  function dashedOpenEl(x1,y1,x2,y2){
+    const midx=(x1+x2)/2, midy=(y1+y2)/2;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="open-dash"/>
+      <rect x="${midx-20}" y="${midy-10}" width="40" height="20" class="open-badge-bg"/>
+      <text x="${midx}" y="${midy}" class="open-badge" text-anchor="middle" dominant-baseline="central">open</text>`;
+  }
+  function resistorEl(x1,y1,x2,y2,name,value,side){
+    side = side || 1;
+    const dx=x2-x1, dy=y2-y1;
+    const len=Math.hypot(dx,dy);
+    const ux=dx/len, uy=dy/len;
+    const px=-uy, py=ux;
+
+    // fixed-size symbol, independent of how far apart the two leads are —
+    // this is what keeps every resistor the same shape instead of stretching.
+    const symLen = 52, lead = 9, amp = 7.5;
+    const half = symLen/2;
+    const cx=(x1+x2)/2, cy=(y1+y2)/2;
+    const s1x = cx-ux*half, s1y = cy-uy*half;
+    const s2x = cx+ux*half, s2y = cy+uy*half;
+    const bx1 = s1x+ux*lead, by1 = s1y+uy*lead;
+    const bx2 = s2x-ux*lead, by2 = s2y-uy*lead;
+    const fracs=[0,1/6,2/6,3/6,4/6,5/6,1];
+    const amps=[0,-1,1,-1,1,-1,0];
+    const pts = fracs.map((f,i)=>{
+      const bx=bx1+(bx2-bx1)*f, by=by1+(by2-by1)*f;
+      return [bx+px*amp*amps[i], by+py*amp*amps[i]];
+    });
+    let d = `M ${s1x.toFixed(1)} ${s1y.toFixed(1)} L ${bx1.toFixed(1)} ${by1.toFixed(1)} `;
+    d += pts.map(p=>`L ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+    d += ` L ${s2x.toFixed(1)} ${s2y.toFixed(1)}`;
+
+    const horizontal = (y1===y2);
+    let nameX,nameY,valX,valY,anchor='middle';
+    if(horizontal){
+      const midx=(x1+x2)/2;
+      nameX=midx; valX=midx;
+      if(side>0){ nameY=y1-22; valY=y1-7; } else { nameY=y1+20; valY=y1+36; }
+    } else {
+      const midy=(y1+y2)/2;
+      nameY=midy-10; valY=midy+10;
+      anchor = side>0 ? 'start' : 'end';
+      const off = side>0 ? 14 : -14;
+      nameX=x1+off; valX=x1+off;
+    }
+    return `<line x1="${x1}" y1="${y1}" x2="${s1x.toFixed(1)}" y2="${s1y.toFixed(1)}" class="wire-path"/>
+      <path d="${d}" class="wire-path"/>
+      <line x1="${s2x.toFixed(1)}" y1="${s2y.toFixed(1)}" x2="${x2}" y2="${y2}" class="wire-path"/>
+      <text x="${nameX}" y="${nameY}" class="comp-label" text-anchor="${anchor}">${name}</text>
+      <text x="${valX}" y="${valY}" class="comp-value" text-anchor="${anchor}">${value}</text>`;
+  }
+  function sourceEl(x1,y1,x2,y2,kind,name,value,side){
+    side = side || 1;
+    const dx=x2-x1, dy=y2-y1;
+    const len=Math.hypot(dx,dy);
+    const ux=dx/len, uy=dy/len;
+    const r=22;
+    const cx=(x1+x2)/2, cy=(y1+y2)/2;
+    const inX=cx-ux*r, inY=cy-uy*r, outX=cx+ux*r, outY=cy+uy*r;
+    let sym;
+    if(kind==='v'){
+      const plusX=cx-ux*11, plusY=cy-uy*11, minusX=cx+ux*11, minusY=cy+uy*11;
+      sym = `<circle cx="${cx}" cy="${cy}" r="${r}" class="src-circle"/>
+        <text x="${plusX}" y="${plusY}" class="src-sign" text-anchor="middle" dominant-baseline="central">+</text>
+        <text x="${minusX}" y="${minusY}" class="src-sign" text-anchor="middle" dominant-baseline="central">–</text>`;
+    } else {
+      const tx=cx-ux*11, ty=cy-uy*11, hx=cx+ux*11, hy=cy+uy*11;
+      sym = `<circle cx="${cx}" cy="${cy}" r="${r}" class="src-circle"/>
+        <line x1="${tx}" y1="${ty}" x2="${hx}" y2="${hy}" class="src-arrow" marker-end="url(#arrow)"/>`;
+    }
+    const horizontal = (dy===0);
+    let nameX,nameY,valX,valY,anchor='middle';
+    if(horizontal){
+      nameX=cx; valX=cx;
+      if(side>0){ nameY=cy-32; valY=cy-16; } else { nameY=cy+30; valY=cy+46; }
+    } else {
+      nameY=cy-8; valY=cy+12;
+      anchor = side>0 ? 'start' : 'end';
+      const off = side>0 ? 30 : -30;
+      nameX=cx+off; valX=cx+off;
+    }
+    return `<line x1="${x1}" y1="${y1}" x2="${inX.toFixed(1)}" y2="${inY.toFixed(1)}" class="wire-path"/>
+      <line x1="${outX.toFixed(1)}" y1="${outY.toFixed(1)}" x2="${x2}" y2="${y2}" class="wire-path"/>
+      ${sym}
+      <text x="${nameX}" y="${nameY}" class="comp-label" text-anchor="${anchor}">${name}</text>
+      <text x="${valX}" y="${valY}" class="comp-value" text-anchor="${anchor}">${value}</text>`;
+  }
+  const DEFS = `<defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/>
+    </marker>
+  </defs>`;
+  function wrapSvg(inner){
+    return `<svg class="circuit" viewBox="0 0 580 400" xmlns="http://www.w3.org/2000/svg">${DEFS}${inner}</svg>`;
+  }
+
+  // ---------- templates ----------
+  const templates = {
+
+    divider: {
+      name: 'Voltage divider', difficulty: 'easy',
+      generate(){ return { V1: pick(VPOOL), R1: pick(RPOOL), R2: pick(RPOOL) }; },
+      solve(v){
+        const rth = (v.R1*v.R2)/(v.R1+v.R2);
+        const vth = v.V1*v.R2/(v.R1+v.R2);
+        return {vth, rth};
+      },
+      svg(v){
+        return wrapSvg(`
+          ${sourceEl(100,70,100,330,'v','V1',v.V1+' V',-1)}
+          ${resistorEl(100,70,300,70,'R1',v.R1+' Ω',1)}
+          ${resistorEl(300,70,300,330,'R2',v.R2+' Ω',1)}
+          ${lineEl(100,330,300,330)}
+          ${dotEl(300,70)}${dotEl(300,330)}
+          ${lineEl(300,70,460,70)}
+          ${lineEl(300,330,460,330)}
+          ${terminalEl(460,70,'A',30,0)}
+          ${terminalEl(460,330,'B',30,0)}
+          ${dashedOpenEl(460,70,460,330)}
+        `);
+      },
+      steps(v,ans){
+        const rp = (v.R1*v.R2/(v.R1+v.R2));
+        return [
+          `Turn off V1 (replace it with a short, 0 V). Looking into A–B, R1 and R2 are now in parallel.`,
+          `R<sub>TH</sub> = (R1·R2)/(R1+R2) = (${v.R1}·${v.R2})/(${v.R1}+${v.R2}) = ${rp.toFixed(2)} Ω`,
+          `With A–B open, no current leaves the circuit there, so V1, R1 and R2 just form a voltage divider.`,
+          `V<sub>TH</sub> = V1·R2/(R1+R2) = ${v.V1}·${v.R2}/(${v.R1}+${v.R2}) = ${ans.vth.toFixed(2)} V`
+        ];
+      }
+    },
+
+    loadedDivider: {
+      name: 'Divider with a series resistor', difficulty: 'easy',
+      generate(){ return { V1: pick(VPOOL), R1: pick(RPOOL), R2: pick(RPOOL), R3: pick(RPOOL) }; },
+      solve(v){
+        const rp = (v.R1*v.R2)/(v.R1+v.R2);
+        const rth = rp + v.R3;
+        const vth = v.V1*v.R2/(v.R1+v.R2);
+        return {vth, rth};
+      },
+      svg(v){
+        return wrapSvg(`
+          ${sourceEl(100,70,100,330,'v','V1',v.V1+' V',-1)}
+          ${resistorEl(100,70,300,70,'R1',v.R1+' Ω',1)}
+          ${resistorEl(300,70,300,330,'R2',v.R2+' Ω',1)}
+          ${lineEl(100,330,300,330)}
+          ${dotEl(300,70)}${dotEl(300,330)}
+          ${resistorEl(300,70,430,70,'R3',v.R3+' Ω',1)}
+          ${lineEl(430,70,460,70)}
+          ${lineEl(300,330,460,330)}
+          ${terminalEl(460,70,'A',30,0)}
+          ${terminalEl(460,330,'B',30,0)}
+          ${dashedOpenEl(460,70,460,330)}
+        `);
+      },
+      steps(v,ans){
+        const rp = (v.R1*v.R2/(v.R1+v.R2));
+        return [
+          `Turn off V1 (short it). From A, R3 leads straight to the node shared by R1 and R2, so R<sub>TH</sub> = R3 + (R1‖R2).`,
+          `R1‖R2 = (${v.R1}·${v.R2})/(${v.R1}+${v.R2}) = ${rp.toFixed(2)} Ω`,
+          `R<sub>TH</sub> = ${rp.toFixed(2)} + ${v.R3} = ${ans.rth.toFixed(2)} Ω`,
+          `With A–B open, no current flows through R3, so it doesn't change the voltage — V<sub>TH</sub> is just the R1–R2 divider voltage.`,
+          `V<sub>TH</sub> = V1·R2/(R1+R2) = ${v.V1}·${v.R2}/(${v.R1}+${v.R2}) = ${ans.vth.toFixed(2)} V`
+        ];
+      }
+    },
+
+    currentDivider: {
+      name: 'Current source network', difficulty: 'medium',
+      generate(){ return { I1: pick(IPOOL), R1: pick(RPOOL), R2: pick(RPOOL) }; },
+      solve(v){
+        const rth = v.R1+v.R2;
+        const vth = v.I1*v.R1;
+        return {vth, rth};
+      },
+      svg(v){
+        return wrapSvg(`
+          ${sourceEl(100,330,100,70,'i','I1',v.I1+' A',-1)}
+          ${lineEl(100,70,240,70)}
+          ${resistorEl(240,70,240,330,'R1',v.R1+' Ω',1)}
+          ${lineEl(100,330,240,330)}
+          ${dotEl(240,70)}${dotEl(240,330)}
+          ${resistorEl(240,70,420,70,'R2',v.R2+' Ω',1)}
+          ${lineEl(420,70,460,70)}
+          ${lineEl(240,330,460,330)}
+          ${terminalEl(460,70,'A',30,0)}
+          ${terminalEl(460,330,'B',30,0)}
+          ${dashedOpenEl(460,70,460,330)}
+        `);
+      },
+      steps(v,ans){
+        return [
+          `Open the current source (remove I1) to find R<sub>TH</sub>: only R1 and R2 remain, now in series.`,
+          `R<sub>TH</sub> = R1 + R2 = ${v.R1} + ${v.R2} = ${ans.rth.toFixed(2)} Ω`,
+          `With A–B open, R2 carries no current, so all of I1 is forced through R1.`,
+          `V<sub>TH</sub> = I1·R1 = ${v.I1}·${v.R1} = ${ans.vth.toFixed(2)} V`
+        ];
+      }
+    },
+
+    twoSource: {
+      name: 'Two sources (superposition)', difficulty: 'medium',
+      generate(){ return { V1: pick(VPOOL), Rs: pick(RPOOL), I1: pick(IPOOL), R1: pick(RPOOL) }; },
+      solve(v){
+        const rp = (v.Rs*v.R1)/(v.Rs+v.R1);
+        const rth = rp;
+        const vth = v.V1*v.R1/(v.Rs+v.R1) + v.I1*rp;
+        return {vth, rth};
+      },
+      svg(v){
+        return wrapSvg(`
+          ${sourceEl(90,330,90,220,'v','V1',v.V1+' V',-1)}
+          ${resistorEl(90,220,90,70,'Rs',v.Rs+' Ω',-1)}
+          ${sourceEl(260,330,260,70,'i','I1',v.I1+' A',-1)}
+          ${resistorEl(410,330,410,70,'R1',v.R1+' Ω',1)}
+          ${lineEl(90,70,260,70)}${lineEl(260,70,410,70)}${lineEl(410,70,500,70)}
+          ${lineEl(90,330,260,330)}${lineEl(260,330,410,330)}${lineEl(410,330,500,330)}
+          ${dotEl(260,70)}${dotEl(410,70)}${dotEl(260,330)}${dotEl(410,330)}
+          ${terminalEl(500,70,'A',30,0)}
+          ${terminalEl(500,330,'B',30,0)}
+          ${dashedOpenEl(500,70,500,330)}
+        `);
+      },
+      steps(v,ans){
+        const rp = (v.Rs*v.R1)/(v.Rs+v.R1);
+        const vFromV1 = v.V1*v.R1/(v.Rs+v.R1);
+        const vFromI1 = v.I1*rp;
+        return [
+          `Zero both sources to find R<sub>TH</sub>: short V1 (leaving just Rs) and open I1 (removing that branch). Rs and R1 are then in parallel.`,
+          `R<sub>TH</sub> = Rs‖R1 = (${v.Rs}·${v.R1})/(${v.Rs}+${v.R1}) = ${ans.rth.toFixed(2)} Ω`,
+          `Now superpose the two sources. With I1 open, V1 sees Rs and R1 in series, tapped at the node between them: contribution = V1·R1/(Rs+R1) = ${v.V1}·${v.R1}/(${v.Rs}+${v.R1}) = ${vFromV1.toFixed(2)} V.`,
+          `With V1 shorted, I1 drives current through Rs‖R1: contribution = I1·(Rs‖R1) = ${v.I1}·${rp.toFixed(2)} = ${vFromI1.toFixed(2)} V.`,
+          `V<sub>TH</sub> = sum of both contributions = ${vFromV1.toFixed(2)} + ${vFromI1.toFixed(2)} = ${ans.vth.toFixed(2)} V`
+        ];
+      }
+    },
+
+    bridge: {
+      name: 'Wheatstone bridge', difficulty: 'hard',
+      generate(){
+        let v, tries=0;
+        do {
+          v = { V1: pick(VPOOL), R1: pick(RPOOL), R2: pick(RPOOL), R3: pick(RPOOL), R4: pick(RPOOL) };
+          tries++;
+        } while (Math.abs(this.solve(v).vth) < 0.3 && tries < 25);
+        return v;
+      },
+      solve(v){
+        const va = v.V1*v.R2/(v.R1+v.R2);
+        const vb = v.V1*v.R4/(v.R3+v.R4);
+        const vth = va - vb;
+        const rth = (v.R1*v.R2/(v.R1+v.R2)) + (v.R3*v.R4/(v.R3+v.R4));
+        return {vth, rth};
+      },
+      svg(v){
+        return wrapSvg(`
+          ${sourceEl(80,80,80,320,'v','V1',v.V1+' V',-1)}
+          ${lineEl(80,80,190,80)}
+          ${lineEl(80,320,190,320)}
+          ${lineEl(190,80,430,80)}
+          ${lineEl(190,320,430,320)}
+          ${resistorEl(190,80,190,200,'R1',v.R1+' Ω',-1)}
+          ${resistorEl(190,200,190,320,'R2',v.R2+' Ω',-1)}
+          ${resistorEl(430,80,430,200,'R3',v.R3+' Ω',1)}
+          ${resistorEl(430,200,430,320,'R4',v.R4+' Ω',1)}
+          ${dotEl(190,80)}${dotEl(430,80)}${dotEl(190,320)}${dotEl(430,320)}
+          ${terminalEl(190,200,'A',-44,0)}
+          ${terminalEl(430,200,'B',44,0)}
+          ${dashedOpenEl(190,200,430,200)}
+        `);
+      },
+      steps(v,ans){
+        const va = v.V1*v.R2/(v.R1+v.R2);
+        const vb = v.V1*v.R4/(v.R3+v.R4);
+        const rp1 = v.R1*v.R2/(v.R1+v.R2);
+        const rp2 = v.R3*v.R4/(v.R3+v.R4);
+        return [
+          `Find the voltage at each middle node relative to the bottom rail. Each side is its own divider: V_A = V1·R2/(R1+R2), V_B = V1·R4/(R3+R4).`,
+          `V_A = ${v.V1}·${v.R2}/(${v.R1}+${v.R2}) = ${va.toFixed(2)} V`,
+          `V_B = ${v.V1}·${v.R4}/(${v.R3}+${v.R4}) = ${vb.toFixed(2)} V`,
+          `V<sub>TH</sub> = V_A − V_B = ${va.toFixed(2)} − ${vb.toFixed(2)} = ${ans.vth.toFixed(2)} V`,
+          `Short V1 to find R<sub>TH</sub>. The top and bottom rails become one node, so R1 and R2 both connect A to it (parallel), and R3, R4 both connect B to it (parallel).`,
+          `R<sub>TH</sub> = R1‖R2 + R3‖R4 = ${rp1.toFixed(2)} + ${rp2.toFixed(2)} = ${ans.rth.toFixed(2)} Ω`
+        ];
+      }
+    }
+  };
+
+  const DIFF_TEMPLATES = {
+    easy: ['divider','loadedDivider'],
+    medium: ['currentDivider','twoSource'],
+    hard: ['bridge'],
+    mixed: ['divider','loadedDivider','currentDivider','twoSource','bridge']
+  };
+
+  // ---------- state ----------
+  const state = { difficulty:'easy', mode:'thevenin', templateId:null, values:null, ans:null, attempts:0, gaveUp:false };
+
+  function loadStats(){
+    try{
+      const raw = localStorage.getItem('thevNortonStats');
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return {solved:0, streak:0};
+  }
+  function saveStats(s){
+    try{ localStorage.setItem('thevNortonStats', JSON.stringify(s)); }catch(e){}
+  }
+  let stats = loadStats();
+  function renderStats(){
+    document.getElementById('stats').innerHTML = `Solved <b>${stats.solved}</b> · Streak <b>${stats.streak}</b>`;
+  }
+
+  function newProblem(){
+    const pool = DIFF_TEMPLATES[state.difficulty];
+    const id = pool[Math.floor(Math.random()*pool.length)];
+    const tpl = templates[id];
+    const values = tpl.generate();
+    const ans = tpl.solve(values);
+    state.templateId = id;
+    state.values = values;
+    state.ans = ans;
+    state.attempts = 0;
+    state.gaveUp = false;
+
+    document.getElementById('templateName').textContent = tpl.name;
+    const tag = document.getElementById('diffTag');
+    tag.textContent = tpl.difficulty;
+    tag.className = 'tag ' + tpl.difficulty;
+    document.getElementById('svgHost').innerHTML = tpl.svg(values);
+
+    document.querySelectorAll('#answerPanel input').forEach(inp=>{
+      inp.value = '';
+      inp.classList.remove('correct','incorrect');
+    });
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback'; fb.textContent='';
+    document.getElementById('solutionBox').classList.remove('show');
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('checkBtn').style.display = 'inline-block';
+    document.getElementById('solutionBtn').textContent = 'Show solution';
+  }
+
+  function tolCheck(val, expected){
+    if (isNaN(val)) return false;
+    const tol = Math.max(Math.abs(expected)*0.03, 0.03);
+    return Math.abs(val-expected) <= tol;
+  }
+
+  function checkAnswer(){
+    const {ans} = state;
+    const inVal = ans.vth/ans.rth;
+    const rnVal = ans.rth;
+    const mode = state.mode;
+    const need = mode==='both' ? ['vth','rth','in','rn'] : (mode==='thevenin' ? ['vth','rth'] : ['in','rn']);
+    const expected = {vth:ans.vth, rth:ans.rth, in:inVal, rn:rnVal};
+    let allCorrect = true;
+    let anyBlank = false;
+
+    need.forEach(f=>{
+      const inp = document.querySelector(`#answerPanel input[data-field="${f}"]`);
+      const val = parseFloat(inp.value);
+      if (inp.value.trim()===''){ anyBlank = true; }
+      const ok = tolCheck(val, expected[f]);
+      inp.classList.remove('correct','incorrect');
+      inp.classList.add(ok ? 'correct' : 'incorrect');
+      if (!ok) allCorrect = false;
+    });
+
+    state.attempts++;
+    const fb = document.getElementById('feedback');
+    fb.classList.add('show');
+
+    if (anyBlank){
+      fb.className = 'feedback show incorrect';
+      fb.textContent = 'Fill in every field before checking.';
+      return;
+    }
+
+    if (allCorrect){
+      fb.className = 'feedback show correct';
+      fb.textContent = 'Correct — the equivalent circuit checks out.';
+      if (!state.gaveUp){
+        stats.solved++; stats.streak++; saveStats(stats); renderStats();
+      }
+      document.getElementById('checkBtn').style.display='none';
+      document.getElementById('nextBtn').style.display='inline-block';
+    } else {
+      fb.className = 'feedback show incorrect';
+      fb.textContent = state.attempts>=2
+        ? 'Still off — try "Show solution" for the worked steps.'
+        : 'Not quite. Recheck your reduction and try again.';
+    }
+  }
+
+  function showSolution(){
+    const tpl = templates[state.templateId];
+    const steps = tpl.steps(state.values, state.ans);
+    const ol = document.getElementById('solutionSteps');
+    ol.innerHTML = steps.map(s=>`<li>${s}</li>`).join('');
+    const inVal = state.ans.vth/state.ans.rth;
+    document.getElementById('nortonLine').innerHTML =
+      `Norton equivalent: I<sub>N</sub> = V<sub>TH</sub>/R<sub>TH</sub> = ${state.ans.vth.toFixed(2)}/${state.ans.rth.toFixed(2)} = ${inVal.toFixed(2)} A, R<sub>N</sub> = R<sub>TH</sub> = ${state.ans.rth.toFixed(2)} Ω`;
+    document.getElementById('solutionBox').classList.add('show');
+    if (!state.gaveUp){
+      state.gaveUp = true;
+      stats.streak = 0; saveStats(stats); renderStats();
+    }
+    document.getElementById('checkBtn').style.display='none';
+    document.getElementById('nextBtn').style.display='inline-block';
+  }
+
+  // ---------- wiring ----------
+  document.getElementById('diffSeg').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#diffSeg button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.difficulty = btn.dataset.val;
+    newProblem();
+  });
+  document.getElementById('modeSeg').addEventListener('click', e=>{
+    const btn = e.target.closest('button'); if(!btn) return;
+    document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.val;
+    document.getElementById('answerPanel').dataset.mode = state.mode;
+    newProblem();
+  });
+  document.getElementById('newCircuitBtn').addEventListener('click', newProblem);
+  document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+  document.getElementById('nextBtn').addEventListener('click', newProblem);
+  document.getElementById('solutionBtn').addEventListener('click', showSolution);
+
+  document.querySelectorAll('#answerPanel input').forEach(inp=>{
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkAnswer(); });
+  });
+
+  renderStats();
+  newProblem();
+})();
+</script>
+</body>
+</html>
